@@ -9,7 +9,7 @@ from typing import Annotated, Literal
 from langchain_core.tools import tool
 from langgraph.prebuilt import InjectedState
 
-from tradingagents.dataflows.date_window import as_of, as_of_window
+from tradingagents.dataflows.date_window import as_of, as_of_window, get_current_date
 from tradingagents.dataflows.errors import NoMarketDataError, VendorUnavailableError
 from tradingagents.dataflows.router import no_data_available, route_to_vendor, vendor_unavailable
 from tradingagents.dataflows.vendors.yahoo.snapshot import build_verified_market_snapshot
@@ -289,3 +289,44 @@ def get_prediction_markets(
         str: A formatted markdown report of matching prediction markets
     """
     return route_to_vendor("get_prediction_markets", topic, limit, trade_date or None)
+
+
+@tool
+def get_option_chain(
+    ticker: Annotated[str, InjectedState("company_of_interest")],
+    trade_date: Annotated[str, InjectedState("trade_date")] = "",
+) -> str:
+    """
+    For an NSE F&O stock (.NS): the nearest-expiry option chain summarized as the
+    put-call ratio by open interest, the max-pain strike, and the call and put
+    strikes with the most open interest (resistance and support). Live only.
+    """
+    return route_to_vendor("get_option_chain", ticker, trade_date or get_current_date())
+
+
+@tool
+def get_shareholding(
+    ticker: Annotated[str, InjectedState("company_of_interest")],
+    trade_date: Annotated[str, InjectedState("trade_date")] = "",
+) -> str:
+    """
+    For an Indian stock (.NS/.BO): promoter vs public shareholding by quarter and
+    the promoter pledge, as filed with NSE by the analysis date.
+    """
+    return route_to_vendor("get_shareholding", ticker, trade_date or get_current_date())
+
+
+@tool
+def get_corporate_announcements(
+    ticker: Annotated[str, InjectedState("company_of_interest")],
+    look_back_days: Annotated[int, "Days of filings to include, ending at the analysis date"] = 30,
+    trade_date: Annotated[str, InjectedState("trade_date")] = "",
+) -> str:
+    """
+    For an Indian stock (.NS/.BO): the company's exchange filings to NSE
+    (results, board meetings, orders, ratings, deals) over the window, and its
+    corporate actions (dividends, splits, bonus issues) of the last two years.
+    """
+    return route_to_vendor(
+        "get_corporate_announcements", ticker, trade_date or get_current_date(), look_back_days
+    )

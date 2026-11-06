@@ -87,6 +87,7 @@ MARKET_PROFILES = {
             "news_data": "india_rss,nse,yfinance",
             "macro_data": "rbi,fred",
             "prediction_markets": "polymarket",
+            "india_data": "nse",
         },
         "global_news_queries": [
             "RBI monetary policy repo rate inflation India",

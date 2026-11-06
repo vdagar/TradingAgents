@@ -6,6 +6,7 @@ from tradingagents.dataflows.errors import (
     VendorNotConfiguredError,
     VendorUnavailableError,
 )
+from tradingagents.dataflows.vendors import nse
 from tradingagents.dataflows.vendors.alpha_vantage import (
     get_balance_sheet as get_alpha_vantage_balance_sheet,
     get_cashflow as get_alpha_vantage_cashflow,
@@ -83,7 +84,15 @@ TOOLS_CATEGORIES = {
         "tools": [
             "get_prediction_markets",
         ]
-    }
+    },
+    "india_data": {
+        "description": "NSE-only data: option chain, shareholding, exchange filings",
+        "tools": [
+            "get_option_chain",
+            "get_shareholding",
+            "get_corporate_announcements",
+        ]
+    },
 }
 
 # Optional enrichment categories. These add macro/event context to the news
@@ -91,13 +100,14 @@ TOOLS_CATEGORIES = {
 # sentinel instead of aborting the run (a bad LLM-supplied indicator, a missing
 # key, or a network blip should not crash an analysis over flavour data). Core
 # categories (prices, fundamentals, news) still raise so a broken primary is loud.
-OPTIONAL_CATEGORIES = {"macro_data", "prediction_markets"}
+OPTIONAL_CATEGORIES = {"macro_data", "prediction_markets", "india_data"}
 
 # Mapping of methods to their vendor-specific implementations
 VENDOR_METHODS = {
     # core_stock_apis
     "get_stock_data": {
         "alpha_vantage": get_alpha_vantage_stock,
+        "nse_mcp": nse.get_stock_data,
         "yfinance": get_YFin_data_online,
     },
     # technical_indicators
@@ -136,6 +146,7 @@ VENDOR_METHODS = {
     },
     "get_insider_transactions": {
         "alpha_vantage": get_alpha_vantage_insider_transactions,
+        "nse": nse.get_insider_transactions,
         "yfinance": get_yfinance_insider_transactions,
     },
     # macro_data
@@ -146,6 +157,10 @@ VENDOR_METHODS = {
     "get_prediction_markets": {
         "polymarket": get_polymarket_prediction_markets,
     },
+    # india_data
+    "get_option_chain": {"nse": nse.get_option_chain},
+    "get_shareholding": {"nse": nse.get_shareholding},
+    "get_corporate_announcements": {"nse": nse.get_corporate_announcements},
 }
 
 

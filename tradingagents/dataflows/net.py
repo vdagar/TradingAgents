@@ -1,6 +1,29 @@
 """HTTP helpers shared by the vendors."""
 
+import hashlib
+import json
+import time
+from pathlib import Path
+
 import requests
+
+
+def cached_json(namespace: str, key: str, ttl: float, fetch):
+    """``fetch()``'s JSON-able answer, kept under ``data_cache_dir`` for ``ttl`` seconds."""
+    from tradingagents.dataflows.config import get_config
+    from tradingagents.dataflows.files import replace_file
+
+    name = hashlib.sha1(key.encode()).hexdigest() + ".json"
+    path = Path(get_config()["data_cache_dir"]) / namespace / name
+    if path.exists() and time.time() - path.stat().st_mtime < ttl:
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except ValueError:
+            pass  # a truncated file is a miss, not a failure
+    data = fetch()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    replace_file(path, lambda temp: Path(temp).write_text(json.dumps(data), encoding="utf-8"))
+    return data
 
 
 def get_scrubbed(url: str, *, params: dict, timeout: float, secret: str, passthrough=()):
