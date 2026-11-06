@@ -4,11 +4,13 @@ from tradingagents.agents.analysts.turn import take_turn
 from tradingagents.agents.context import get_instrument_context_from_state, get_language_instruction
 from tradingagents.agents.tools import (
     get_corporate_announcements,
+    get_global_cues,
     get_global_news,
     get_macro_indicators,
     get_news,
     get_prediction_markets,
 )
+from tradingagents.dataflows.symbols import is_indian_symbol
 
 # The tools this analyst is offered; its tool node is built from the same tuple.
 TOOLS = (
@@ -17,6 +19,19 @@ TOOLS = (
     get_macro_indicators,
     get_prediction_markets,
     get_corporate_announcements,
+    get_global_cues,
+)
+
+# For an Indian stock: how the world reaches it, and the RBI as the domestic anchor.
+INDIA_NEWS_BRIEF = (
+    " This is an Indian stock, so also analyze how international trends transmit to Indian"
+    " equities and to this company: call get_global_cues for overnight world markets, the"
+    " dollar, USD/INR, US yields, crude and gold, FII/DII flows and GIFT Nifty, and explain"
+    " each channel that matters here (FPI flows and US yields, the rupee for exporters vs"
+    " importers, crude for OMCs, paints, aviation and inflation, US tech spending for IT,"
+    " China for metals). Ground domestic policy with get_macro_indicators: 'rbi_mpc' for the"
+    " RBI's latest decision and stance, 'rbi_rates' for today's policy rates and G-sec yields,"
+    " 'forex_reserves' for the weekly reserves, credit and M3, and 'usd_inr' / 'india_cpi' from FRED."
 )
 
 
@@ -30,6 +45,7 @@ def create_news_analyst(llm):
         system_message = (
             f"You are a news researcher tasked with analyzing recent news and trends over the past week. Please write a comprehensive report of the current state of the world that is relevant for trading and macroeconomics. Use the available tools: get_news(start_date, end_date) for news about the {asset_label} under analysis, get_global_news(curr_date, look_back_days, limit) for broader macroeconomic news, get_macro_indicators(indicator, curr_date, look_back_days) to ground macro commentary in actual data from FRED (e.g. 'cpi', 'core_pce', 'unemployment', 'fed_funds_rate', '10y_treasury', 'yield_curve'), and get_prediction_markets(topic, limit) for live market-implied probabilities of forward-looking events (e.g. 'Fed rate cut', 'recession 2026', geopolitical or sector events). For an Indian stock (`.NS`/`.BO`), call get_corporate_announcements(look_back_days) for its exchange filings and corporate actions. Provide specific, actionable insights with supporting evidence to help traders make informed decisions."
             + """ Make sure to append a Markdown table at the end of the report to organize key points in the report, organized and easy to read."""
+            + (INDIA_NEWS_BRIEF if is_indian_symbol(state["company_of_interest"]) else "")
             + get_language_instruction()
         )
 

@@ -6,7 +6,7 @@ from tradingagents.dataflows.errors import (
     VendorNotConfiguredError,
     VendorUnavailableError,
 )
-from tradingagents.dataflows.vendors import india_rss, nse, rbi, screener
+from tradingagents.dataflows.vendors import global_cues, india_rss, nse, rbi, screener
 from tradingagents.dataflows.vendors.alpha_vantage import (
     get_balance_sheet as get_alpha_vantage_balance_sheet,
     get_cashflow as get_alpha_vantage_cashflow,
@@ -91,6 +91,7 @@ TOOLS_CATEGORIES = {
             "get_option_chain",
             "get_shareholding",
             "get_corporate_announcements",
+            "get_global_cues",
         ]
     },
 }
@@ -167,6 +168,8 @@ VENDOR_METHODS = {
     "get_option_chain": {"nse": nse.get_option_chain},
     "get_shareholding": {"nse": nse.get_shareholding},
     "get_corporate_announcements": {"nse": nse.get_corporate_announcements},
+    # Yahoo world quotes plus NSE flows and NSE IX's GIFT Nifty, served under the india_data chain.
+    "get_global_cues": {"nse": global_cues.get_global_cues},
 }
 
 

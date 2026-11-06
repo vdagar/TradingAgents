@@ -198,6 +198,22 @@ def build_default_config(market: str | None = None) -> dict:
         # routed to vendors you didn't choose. For ordered fallback, list several,
         # e.g. "yfinance,alpha_vantage". "default" uses all available vendors.
         **copy.deepcopy(MARKET_PROFILES[market]),
+        # Markets get_global_cues reads for the news analyst: [Yahoo symbol, label,
+        # how a move reaches Indian equities]. Extend or replace freely.
+        "global_cues": [
+            ["^GSPC", "S&P 500", "US risk appetite; FII flows into India"],
+            ["^IXIC", "Nasdaq", "US tech demand; Indian IT services"],
+            ["^N225", "Nikkei 225", "Asian session risk tone"],
+            ["^HSI", "Hang Seng", "China/EM sentiment; metals"],
+            ["000001.SS", "Shanghai Composite", "China demand; metals and chemicals"],
+            ["DX-Y.NYB", "US Dollar Index", "strong dollar pulls EM flows out"],
+            ["USDINR=X", "USD/INR", "weak rupee helps IT/pharma exporters, hurts importers"],
+            ["^TNX", "US 10Y yield", "higher yields draw FPI money from India"],
+            ["BZ=F", "Brent crude", "India imports most of its oil: OMCs, paints, aviation, inflation"],
+            ["GC=F", "Gold", "risk-off gauge; jewellers and gold lenders"],
+            ["^INDIAVIX", "India VIX", "expected Nifty volatility"],
+            ["^NSEI", "Nifty 50", "the Indian benchmark itself"],
+        ],
         # Tool-level configuration (takes precedence over category-level)
         "tool_vendors": {
             # Example: "get_stock_data": "alpha_vantage",  # Override category default

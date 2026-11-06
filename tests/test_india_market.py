@@ -93,3 +93,60 @@ def test_a_full_run_on_an_nse_stock_reaches_a_decision(tmp_path, monkeypatch, of
 
     assert signal == "Overweight"
     assert INDIA_MARKET_CONTEXT in state["instrument_context"]
+
+
+# --- live-only sources never reach a past run (no network here: conftest refuses it) ---
+
+def _past_option_chain():
+    from tradingagents.dataflows.vendors import nse
+    return nse.get_option_chain("RELIANCE.NS", "2024-01-05")
+
+
+def _past_rbi_rates():
+    from tradingagents.dataflows.vendors import rbi
+    return rbi.get_macro_data("rbi_rates", "2024-01-05")
+
+
+def _past_screener_statement():
+    from tradingagents.dataflows.vendors import screener
+    return screener.get_balance_sheet("RELIANCE.NS", "annual", "2024-01-05")
+
+
+def _past_screener_profile():
+    from tradingagents.dataflows.vendors import screener
+    return screener.get_fundamentals("RELIANCE.NS", "2024-01-05")
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("read", [_past_option_chain, _past_rbi_rates, _past_screener_statement,
+                                  _past_screener_profile])
+def test_live_only_india_data_is_withheld_from_a_past_run(read):
+    out = read()
+    assert "withheld" in out or "unavailable for historical date" in out
+
+
+@pytest.mark.unit
+def test_global_cues_are_as_of_the_run_date(monkeypatch):
+    import pandas as pd
+
+    from tradingagents.dataflows.vendors import global_cues
+
+    asked = []
+
+    def closes(symbol, start, end):
+        asked.append(end)
+        return pd.Series([100.0, 110.0], index=pd.to_datetime(["2024-01-04", "2024-01-05"]))
+
+    monkeypatch.setattr(global_cues, "get_closes", closes)
+    out = global_cues.get_global_cues("2024-01-05")
+    assert set(asked) == {"2024-01-06"}   # exclusive end: nothing after the run date
+    assert "| Brent crude | BZ=F | 110.00 | 2024-01-05 | +10.00% |" in out
+    assert out.count("unavailable for historical date 2024-01-05") == 2   # FII/DII and GIFT Nifty
+
+
+@pytest.mark.unit
+def test_the_news_analyst_reads_global_cues_for_an_indian_stock():
+    from tradingagents.agents.analysts import news_analyst
+
+    assert news_analyst.get_global_cues in news_analyst.TOOLS
+    assert "get_global_cues" in news_analyst.INDIA_NEWS_BRIEF and "rbi_mpc" in news_analyst.INDIA_NEWS_BRIEF

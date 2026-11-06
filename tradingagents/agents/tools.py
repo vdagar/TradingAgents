@@ -334,3 +334,16 @@ def get_corporate_announcements(
     return route_to_vendor(
         "get_corporate_announcements", ticker, trade_date or get_current_date(), look_back_days
     )
+
+
+@tool
+def get_global_cues(
+    trade_date: Annotated[str, InjectedState("trade_date")] = "",
+) -> str:
+    """
+    International market trends that move Indian equities, as of the analysis
+    date: US, Asian and Chinese indices, the dollar, USD/INR, the US 10-year
+    yield, Brent crude, gold, India VIX and the Nifty (1-day, 5-day, 1-month
+    changes), plus FII/DII cash flows and GIFT Nifty when the run is live.
+    """
+    return route_to_vendor("get_global_cues", trade_date or get_current_date())
