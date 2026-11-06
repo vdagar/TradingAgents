@@ -10,19 +10,23 @@ from cli import prompts, run, selections
 from cli.models import AnalystType, AssetType
 
 UNATTENDED_ENV = {
+    "TRADINGAGENTS_MARKET": "IN",
     "TRADINGAGENTS_OUTPUT_LANGUAGE": "English",
     "TRADINGAGENTS_MAX_DEBATE_ROUNDS": "1",
     "TRADINGAGENTS_MAX_RISK_ROUNDS": "1",
     "TRADINGAGENTS_LLM_PROVIDER": "openai",
     "TRADINGAGENTS_QUICK_THINK_LLM": "gpt-6-luna",
 }
-FLAGS = {"ticker": "NVDA", "date": "2026-09-23", "analysts": "market,news", "save": True, "show": False}
+FLAGS = {"ticker": "RELIANCE", "date": "2026-09-23", "analysts": "market,news", "save": True, "show": False}
 
 
 @pytest.mark.unit
 class TestFlagValues:
     def test_a_ticker_is_normalised_and_an_empty_one_refused(self):
         assert prompts.parse_ticker("0700.hk") == "0700.HK"
+        assert prompts.parse_ticker("tcs") == "TCS.NS"
+        assert prompts.parse_ticker("500325.bo") == "500325.BO"
+        assert prompts.parse_ticker("NVDA", "US") == "NVDA"
         with pytest.raises(ValueError, match="ticker"):
             prompts.parse_ticker("  ")
         with pytest.raises(ValueError, match="ticker"):
@@ -54,13 +58,14 @@ def test_flags_skip_exactly_their_own_steps(monkeypatch):
     def no_prompt(*a, **k):
         raise AssertionError("prompted although a flag answered the step")
 
-    for step in ("get_ticker", "get_analysis_date", "select_analysts"):
+    for step in ("select_market", "get_ticker", "get_analysis_date", "select_analysts"):
         monkeypatch.setattr(selections, step, no_prompt)
     monkeypatch.setattr(selections.updates, "enabled", lambda: False)
 
     chosen = selections._prompt_selections({}, FLAGS)
 
-    assert chosen["ticker"] == "NVDA" and chosen["analysis_date"] == "2026-09-23"
+    assert chosen["market"] == "IN"
+    assert chosen["ticker"] == "RELIANCE.NS" and chosen["analysis_date"] == "2026-09-23"
     assert chosen["analysts"] == [AnalystType.MARKET, AnalystType.NEWS]
 
 
@@ -137,11 +142,11 @@ def test_the_command_passes_its_flags_to_the_run(monkeypatch):
     seen = {}
     monkeypatch.setattr(cli_main, "run_analysis", lambda **kw: seen.update(kw))
 
-    result = CliRunner().invoke(cli_main.app, ["--ticker", "NVDA", "--date", "2026-09-23",
+    result = CliRunner().invoke(cli_main.app, ["--ticker", "RELIANCE", "--date", "2026-09-23",
                                                "--analysts", "market,news", "--save", "--no-show"])
 
     assert result.exit_code == 0, result.output
-    assert seen["flags"] == {**FLAGS, "html": None}
+    assert seen["flags"] == {"market": None, **FLAGS, "html": None}
 
 
 @pytest.mark.unit

@@ -6,7 +6,6 @@ later, so a past run is told they are withheld rather than served figures that m
 not yet have been public.
 """
 
-import copy
 from unittest import mock
 
 import pytest
@@ -50,8 +49,8 @@ def test_a_current_run_is_still_served_yahoo_statements():
 
 
 @pytest.mark.unit
-def test_statements_come_from_sec_edgar_first_by_default():
-    set_config(copy.deepcopy(default_config.DEFAULT_CONFIG))
+def test_statements_come_from_sec_edgar_first_in_the_us_market():
+    set_config(default_config.build_default_config("US"))
     served = []
     chain = {name: (lambda *a, _n=name, **k: served.append(_n) or f"{_n} statements")
              for name in router.VENDOR_METHODS["get_balance_sheet"]}

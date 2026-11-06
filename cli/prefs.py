@@ -28,7 +28,7 @@ from tradingagents.llm_clients.model_catalog import get_model_options
 _PREFS_PATH = Path(os.path.expanduser("~")) / ".tradingagents" / "cli_prefs.json"
 
 REMEMBERED = (
-    "output_language", "analysts", "research_depth", "llm_provider",
+    "market", "output_language", "analysts", "research_depth", "llm_provider",
     "quick_think_llm", "deep_think_llm", "backend_url",
 )
 

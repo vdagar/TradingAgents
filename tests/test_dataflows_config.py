@@ -20,7 +20,7 @@ class DataflowsConfigIsolationTests(unittest.TestCase):
         cfg["tool_vendors"]["get_stock_data"] = "alpha_vantage"
 
         fresh = get_config()
-        self.assertEqual(fresh["data_vendors"]["core_stock_apis"], "yfinance")
+        self.assertEqual(fresh["data_vendors"]["core_stock_apis"], "nse_mcp,yfinance")
         self.assertNotIn("get_stock_data", fresh["tool_vendors"])
 
     def test_set_config_does_not_alias_caller_nested_dicts(self):
@@ -49,8 +49,8 @@ class DataflowsConfigIsolationTests(unittest.TestCase):
         fresh = get_config()
         self.assertEqual(fresh["data_vendors"]["core_stock_apis"], "alpha_vantage")
         self.assertEqual(fresh["data_vendors"]["technical_indicators"], "yfinance")
-        self.assertEqual(fresh["data_vendors"]["fundamental_data"], "sec_edgar,yfinance")
-        self.assertEqual(fresh["data_vendors"]["news_data"], "yfinance")
+        self.assertEqual(fresh["data_vendors"]["fundamental_data"], "screener,yfinance")
+        self.assertEqual(fresh["data_vendors"]["news_data"], "india_rss,nse,yfinance")
 
     def test_nested_dict_updates_merge_one_level_deep(self):
         set_config({"tool_vendors": {"get_stock_data": "alpha_vantage"}})
@@ -72,7 +72,7 @@ def _graph(config):
     return g
 
 
-def _vendors_seen_by_a_run(graph, ticker="AAPL"):
+def _vendors_seen_by_a_run(graph, ticker="RELIANCE.NS"):
     from tradingagents.dataflows.router import get_vendor
 
     seen = []
@@ -95,7 +95,7 @@ def test_a_run_reads_its_own_graphs_vendors_not_the_last_graph_built():
     set_config(first)                                   # graph A is built
     second = _graph(copy.deepcopy(default_config.DEFAULT_CONFIG))
 
-    assert _vendors_seen_by_a_run(second) == ["sec_edgar,yfinance"]
+    assert _vendors_seen_by_a_run(second) == ["screener,yfinance"]
 
 
 @pytest.mark.unit

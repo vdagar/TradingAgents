@@ -144,6 +144,33 @@ def normalize_symbol(raw: str) -> str:
     return canonical
 
 
+INDIA_SUFFIXES = (".NS", ".BO")
+# A bare exchange code: letters/digits, NSE's dashes (BAJAJ-AUTO), no suffix.
+_BARE_CODE = re.compile(r"[A-Z0-9][A-Z0-9-]*")
+
+
+def is_indian_symbol(symbol: str) -> bool:
+    """Whether ``symbol`` is listed on NSE (``.NS``) or BSE (``.BO``)."""
+    return isinstance(symbol, str) and symbol.strip().upper().endswith(INDIA_SUFFIXES)
+
+
+def market_symbol(raw: str, market: str = "IN") -> str:
+    """``normalize_symbol``, then give a bare code the home exchange's suffix.
+
+    In the IN market ``RELIANCE`` means NSE's ``RELIANCE.NS``; a suffixed
+    symbol, an index, a future, a forex or crypto pair keeps its own form.
+    """
+    canonical = normalize_symbol(raw)
+    if (
+        market.upper() == "IN"
+        and isinstance(canonical, str)
+        and _BARE_CODE.fullmatch(canonical)
+        and not crypto_base(canonical)
+    ):
+        return f"{canonical}.NS"
+    return canonical
+
+
 # Tickers can contain letters, digits, dot, dash, underscore, caret
 # (index symbols like ^GSPC), equals (futures like GC=F), and plus
 # (forex/CFD symbols like XAUUSD+). None of these enable directory

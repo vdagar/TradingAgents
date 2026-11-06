@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from tradingagents.dataflows.date_window import is_historical
+from tradingagents.dataflows.symbols import is_indian_symbol
 from tradingagents.dataflows.vendors.yahoo.fundamentals import get_company_profile
 
 logger = logging.getLogger(__name__)
@@ -128,7 +129,7 @@ def build_instrument_context(
     context = (
         f"The {instrument_label} to analyze is `{ticker}`. "
         "The tools serve this instrument; refer to it by this exact ticker in every report and recommendation, "
-        "preserving any exchange suffix (e.g. `.TO`, `.L`, `.HK`, `.T`, `-USD`)."
+        "preserving any exchange suffix (e.g. `.NS`, `.BO`, `.TO`, `.L`, `.HK`, `-USD`)."
     )
 
     identity = identity or {}
@@ -166,7 +167,20 @@ def build_instrument_context(
             " Treat it as a crypto asset rather than a company, and do not "
             "assume company fundamentals are available."
         )
+    elif is_indian_symbol(ticker):
+        context += INDIA_MARKET_CONTEXT
     return context
+
+
+INDIA_MARKET_CONTEXT = (
+    " It trades in India (NSE `.NS` / BSE `.BO`): prices and statements are in INR,"
+    " and Indian sources quote amounts in lakh (1e5) and crore (1e7). Equity settles T+1;"
+    " stocks carry daily circuit (price-band) limits that can halt trading at the band;"
+    " gains bear STT, and STCG/LTCG tax by holding period. SEBI regulates the market and"
+    " the RBI sets the repo rate and liquidity; FII/FPI and DII flows, the rupee and crude"
+    " oil move Indian equities, and quarterly results cluster in the weeks after each"
+    " quarter ends (Jun, Sep, Dec, Mar)."
+)
 
 
 def get_instrument_context_from_state(state: Mapping[str, Any]) -> str:

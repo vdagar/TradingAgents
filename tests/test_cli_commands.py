@@ -25,7 +25,8 @@ calls: list = []
 @pytest.mark.unit
 def test_no_arguments_still_runs_an_analysis(runner):
     assert runner.invoke(m.app, []).exit_code == 0
-    no_flags = {"ticker": None, "date": None, "analysts": None, "save": None, "show": None, "html": None}
+    no_flags = {"market": None, "ticker": None, "date": None, "analysts": None,
+                "save": None, "show": None, "html": None}
     assert calls == [("analysis", {"checkpoint": None, "portfolio": None, "flags": no_flags})]
 
 
@@ -41,15 +42,31 @@ def test_backtest_does_not_also_run_an_analysis(runner, monkeypatch, tmp_path):
     monkeypatch.setattr(m, "run_backtest", lambda *a, **kw: swept.append((a, kw)) or _Result(tmp_path))
     monkeypatch.setattr(m, "summarize", lambda log: _Summary())
 
-    result = runner.invoke(m.app, ["backtest", "NVDA,AAPL", "--start", "2026-06-01",
+    result = runner.invoke(m.app, ["backtest", "RELIANCE,tcs.ns,500325.BO", "--start", "2026-06-01",
                                    "--end", "2026-06-15", "--every", "7"])
 
     assert result.exit_code == 0, result.output
     assert calls == []  # the interactive analysis must not run
-    (tickers, dates, _config), kwargs = swept[0]
-    assert tickers == ["NVDA", "AAPL"]
+    (tickers, dates, config), kwargs = swept[0]
+    assert tickers == ["RELIANCE.NS", "TCS.NS", "500325.BO"]
+    assert config["market"] == "IN"
     assert dates == ["2026-06-01", "2026-06-08", "2026-06-15"]
     assert "scored" in result.output
+
+
+@pytest.mark.unit
+def test_backtest_in_the_us_market_keeps_bare_tickers(runner, monkeypatch, tmp_path):
+    swept = []
+    monkeypatch.setattr(m, "run_backtest", lambda *a, **kw: swept.append(a) or _Result(tmp_path))
+    monkeypatch.setattr(m, "summarize", lambda log: _Summary())
+
+    result = runner.invoke(m.app, ["backtest", "NVDA,AAPL", "--market", "us", "--start", "2026-06-01",
+                                   "--end", "2026-06-08"])
+
+    assert result.exit_code == 0, result.output
+    tickers, _dates, config = swept[0]
+    assert tickers == ["NVDA", "AAPL"]
+    assert config["data_vendors"]["fundamental_data"] == "sec_edgar,yfinance"
 
 
 @pytest.mark.unit
@@ -150,9 +167,9 @@ def test_backtest_shows_each_cell_and_how_to_continue(runner, monkeypatch, tmp_p
     monkeypatch.setattr(m, "run_backtest", sweep)
     monkeypatch.setattr(m, "summarize", lambda log: _Summary())
 
-    result = runner.invoke(m.app, ["backtest", "NVDA", "--start", "2026-06-01", "--end", "2026-06-08"])
+    result = runner.invoke(m.app, ["backtest", "RELIANCE", "--start", "2026-06-01", "--end", "2026-06-08"])
 
-    assert "[1/2] NVDA 2026-06-01" in result.output and "[2/2] NVDA 2026-06-08" in result.output
+    assert "[1/2] RELIANCE.NS 2026-06-01" in result.output and "[2/2] RELIANCE.NS 2026-06-08" in result.output
     assert f"--run-id {_Result(tmp_path).run_id}" in result.output
 
 

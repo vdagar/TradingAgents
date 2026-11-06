@@ -96,7 +96,8 @@ def _answer_every_prompt(monkeypatch):
     import cli.main as m
 
     monkeypatch.setattr(cli_selections.updates, "enabled", lambda: False)
-    monkeypatch.setattr(cli_selections, "get_ticker", lambda: "NVDA")
+    monkeypatch.setattr(cli_selections, "select_market", lambda default=None: "IN")
+    monkeypatch.setattr(cli_selections, "get_ticker", lambda market: "RELIANCE.NS")
     monkeypatch.setattr(cli_selections, "get_analysis_date", lambda: "2026-09-01")
     monkeypatch.setattr(cli_selections, "ask_output_language", lambda default=None: "English")
     monkeypatch.setattr(cli_selections, "select_analysts", lambda asset_type, default=None: [AnalystType.MARKET])
@@ -116,6 +117,7 @@ def test_selections_are_remembered_after_a_run(monkeypatch):
     cli_selections.get_user_selections()
 
     remembered = load_last_run()
+    assert remembered["market"] == "IN"
     assert remembered["analysts"] == ["market"]
     assert remembered["quick_think_llm"] == "gpt-5.6-mini"
     assert remembered["deep_think_llm"] == "gpt-5.6"
@@ -148,7 +150,8 @@ def test_a_remembered_endpoint_is_offered_back(monkeypatch):
     monkeypatch.setattr(cli_selections, "prompt_openai_compatible_url",
                         lambda default=None: offered.setdefault("default", default) or "http://x/v1")
     monkeypatch.setattr(cli_selections.updates, "enabled", lambda: False)
-    monkeypatch.setattr(cli_selections, "get_ticker", lambda: "NVDA")
+    monkeypatch.setattr(cli_selections, "select_market", lambda default=None: "IN")
+    monkeypatch.setattr(cli_selections, "get_ticker", lambda market: "RELIANCE.NS")
     monkeypatch.setattr(cli_selections, "get_analysis_date", lambda: "2026-09-01")
     monkeypatch.setattr(cli_selections, "ask_output_language", lambda default=None: "English")
     monkeypatch.setattr(cli_selections, "select_analysts", lambda asset_type, default=None: [AnalystType.MARKET])

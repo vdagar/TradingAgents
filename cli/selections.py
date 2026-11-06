@@ -2,6 +2,7 @@
 
 import datetime
 import os
+import sys
 from pathlib import Path
 
 import typer
@@ -14,6 +15,7 @@ from cli.display import (
 )
 from cli.prefs import load_last_run, sanitize, save_last_run
 from cli.prompts import (
+    DEFAULT_TICKERS,
     ask_anthropic_effort,
     ask_gemini_thinking_config,
     ask_glm_region,
@@ -28,12 +30,14 @@ from cli.prompts import (
     get_ticker,
     parse_analysis_date,
     parse_analysts,
+    parse_market,
     parse_ticker,
     prompt_openai_compatible_url,
     resolve_backend_url,
     select_analysts,
     select_deep_thinking_agent,
     select_llm_provider,
+    select_market,
     select_research_depth,
     select_shallow_thinking_agent,
 )
@@ -163,19 +167,30 @@ def _prompt_selections(prefs, flags):
         console.print(create_question_box(box_title, box_body))
         return prompt_fn()
 
+    # Step 0: Market (skipped by --market, TRADINGAGENTS_MARKET, or no terminal)
+    if flags.get("market") is not None:
+        market = _from_flag(parse_market, flags["market"])
+        console.print(f"[green]✓ Market from --market:[/green] {market}")
+    elif os.environ.get("TRADINGAGENTS_MARKET") or not (sys.stdin and sys.stdin.isatty()):
+        market = DEFAULT_CONFIG["market"]
+        console.print(f"[green]✓ Market:[/green] {market}")
+    else:
+        console.print(create_question_box("Step 0: Market", "Select the market to analyze", "IN"))
+        market = select_market(prefs.get("market") or DEFAULT_CONFIG["market"])
+
     # Step 1: Ticker symbol
     if flags.get("ticker") is not None:
-        selected_ticker = _from_flag(parse_ticker, flags["ticker"])
+        selected_ticker = _from_flag(parse_ticker, flags["ticker"], market)
         console.print(f"[green]✓ Ticker from --ticker:[/green] {selected_ticker}")
     else:
         console.print(
             create_question_box(
                 "Step 1: Ticker Symbol",
-                "Enter the ticker, with exchange suffix when needed (e.g. SPY, 0700.HK, BTC-USD)",
-                "SPY",
+                "Enter the ticker; a bare NSE code gets .NS in the IN market (e.g. RELIANCE, 500325.BO, SPY, BTC-USD)",
+                DEFAULT_TICKERS[market],
             )
         )
-        selected_ticker = get_ticker()
+        selected_ticker = get_ticker(market)
     asset_type = detect_asset_type(selected_ticker)
     # Only announce when it's not the default stock path, to avoid printing
     # "stock" on every run.
@@ -355,6 +370,7 @@ def _prompt_selections(prefs, flags):
         )
 
     return {
+        "market": market,
         "ticker": selected_ticker,
         "asset_type": asset_type.value,
         "analysis_date": analysis_date,

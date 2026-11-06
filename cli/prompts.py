@@ -16,7 +16,10 @@ from tradingagents.llm_clients.api_key_env import get_api_key_env
 from tradingagents.llm_clients.model_catalog import get_model_options
 from tradingagents.llm_clients.openai_client import OPENAI_COMPATIBLE_PROVIDERS, SIGNED_IN_PROVIDERS
 
-TICKER_INPUT_EXAMPLES = "SPY, 0700.HK, BTC-USD"
+TICKER_INPUT_EXAMPLES = "RELIANCE, TCS.NS, 500325.BO, SPY, BTC-USD"
+
+# The ticker an empty answer means, per market.
+DEFAULT_TICKERS = {"IN": "RELIANCE.NS", "US": "SPY"}
 
 ANALYST_CHOICES = [
     ("Market Analyst", AnalystType.MARKET),
@@ -52,7 +55,7 @@ def is_valid_ticker_input(value: str) -> bool:
     return True
 
 
-def get_ticker() -> str:
+def get_ticker(market: str = "IN") -> str:
     """Prompt the user to enter a ticker symbol, preserving exchange suffixes.
 
     Uses questionary.text (not typer.prompt, which strips trailing dot-suffixes
@@ -77,14 +80,37 @@ def get_ticker() -> str:
         console.print("\n[red]No ticker symbol provided. Exiting...[/red]")
         exit(1)
 
-    return normalize_ticker_symbol(ticker) if ticker.strip() else "SPY"
+    return normalize_ticker_symbol(ticker, market) if ticker.strip() else DEFAULT_TICKERS[market]
 
 
-def parse_ticker(value: str) -> str:
+def parse_ticker(value: str, market: str = "IN") -> str:
     """A ticker given on the command line, canonical; empty or malformed is refused."""
     if not value.strip() or not is_valid_ticker_input(value):
         raise ValueError(f"not a ticker symbol: {value!r} (e.g. {TICKER_INPUT_EXAMPLES})")
-    return normalize_ticker_symbol(value)
+    return normalize_ticker_symbol(value, market)
+
+
+def parse_market(value: str) -> str:
+    """A market code given on the command line: IN or US."""
+    market = value.strip().upper()
+    if market not in DEFAULT_TICKERS:
+        raise ValueError(f"unknown market {value!r}; choose from {', '.join(DEFAULT_TICKERS)}")
+    return market
+
+
+def select_market(default=None) -> str:
+    """Ask which market the run is for; it picks the data vendors and a bare ticker's exchange."""
+    options = [("India (NSE/BSE)", "IN"), ("United States", "US")]
+    choice = questionary.select(
+        "Select Market:",
+        choices=[questionary.Choice(display, value=value) for display, value in options],
+        default=_matching_choice(options, default),
+        style=_MENU_STYLE,
+    ).ask()
+    if choice is None:
+        console.print("\n[red]No market selected. Exiting...[/red]")
+        exit(1)
+    return choice
 
 
 def parse_analysis_date(value: str) -> str:
@@ -116,18 +142,19 @@ def parse_analysts(value: str, asset_type: AssetType) -> list[AnalystType]:
     return [a for a in available if a.value in names]
 
 
-def normalize_ticker_symbol(ticker: str) -> str:
+def normalize_ticker_symbol(ticker: str, market: str = "US") -> str:
     """Resolve user input to its canonical Yahoo symbol (single source of truth).
 
-    Delegates to the data layer's ``normalize_symbol`` so the symbol the CLI
+    Delegates to the data layer's ``market_symbol`` so the symbol the CLI
     passes through the pipeline is exactly the one the data path will price
-    (e.g. ``BTCUSD`` -> ``BTC-USD``, ``XAUUSD`` -> ``GC=F``). Falls back to the
+    (e.g. ``BTCUSD`` -> ``BTC-USD``, ``XAUUSD`` -> ``GC=F``, and in the IN
+    market ``RELIANCE`` -> ``RELIANCE.NS``). Falls back to the
     plain upper-case if the data layer is unavailable.
     """
     try:
-        from tradingagents.dataflows.symbols import normalize_symbol
+        from tradingagents.dataflows.symbols import market_symbol
 
-        return normalize_symbol(ticker)
+        return market_symbol(ticker, market)
     except Exception:
         return ticker.strip().upper()
 

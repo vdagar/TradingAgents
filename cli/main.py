@@ -10,7 +10,8 @@ from cli.models import AnalystType, AssetType
 from cli.prompts import filter_analysts_for_asset_type, parse_analysts
 from cli.run import run_analysis
 from tradingagents.backtest import iter_grid, run_backtest, summarize
-from tradingagents.default_config import DEFAULT_CONFIG
+from tradingagents.dataflows.symbols import market_symbol
+from tradingagents.default_config import DEFAULT_CONFIG, build_default_config
 from tradingagents.llm_clients.openai_client import SIGNED_IN_PROVIDERS
 from tradingagents.portfolio import load_portfolio
 
@@ -53,7 +54,10 @@ def analyze(
         help="JSON file with current holdings and cash, so the trader, risk and "
         "portfolio agents size against your actual position.",
     ),
-    ticker: str = typer.Option(None, "--ticker", help="Ticker to analyze, e.g. NVDA or 0700.HK; skips the prompt"),
+    ticker: str = typer.Option(None, "--ticker", help="Ticker to analyze, e.g. RELIANCE, TCS.NS or NVDA; skips the prompt"),
+    market: str = typer.Option(
+        None, "--market", help="IN (NSE/BSE, default) or US: the data vendors, and the exchange of a bare ticker; skips the prompt"
+    ),
     date: str = typer.Option(None, "--date", help="Analysis date, YYYY-MM-DD; skips the prompt"),
     analysts: str = typer.Option(
         None, "--analysts", help="Comma-separated analysts, e.g. market,news; skips the prompt"
@@ -89,7 +93,8 @@ def analyze(
             raise typer.Exit(code=1) from None
 
     try:
-        flags = {"ticker": ticker, "date": date, "analysts": analysts, "save": save, "show": show, "html": html}
+        flags = {"market": market, "ticker": ticker, "date": date, "analysts": analysts,
+                 "save": save, "show": show, "html": html}
         run_analysis(checkpoint=checkpoint, portfolio=portfolio_context, flags=flags)
     except _NO_CONSOLE_ERRORS:
         # A terminal with no console buffer cannot host the interactive prompts.
@@ -106,10 +111,11 @@ def analyze(
 
 @app.command()
 def backtest(
-    tickers: str = typer.Argument(..., help="Comma-separated tickers, e.g. NVDA,AAPL"),
+    tickers: str = typer.Argument(..., help="Comma-separated tickers, e.g. RELIANCE,TCS or NVDA,AAPL"),
     start: str = typer.Option(..., "--start", help="First analysis date, YYYY-MM-DD"),
     end: str = typer.Option(..., "--end", help="Last analysis date, YYYY-MM-DD"),
     every: int = typer.Option(7, "--every", help="Days between analysis dates"),
+    market: str = typer.Option(None, "--market", help="IN or US; omit for TRADINGAGENTS_MARKET, else IN"),
     analysts: str = typer.Option(
         None, "--analysts", help="Comma-separated analysts to run: market, sentiment, news, fundamentals; omit for all the asset type allows"
     ),
@@ -125,6 +131,7 @@ def backtest(
 
     try:
         dates = iter_grid(start, end, every)
+        config = build_default_config(market)
         book = load_portfolio(portfolio) if portfolio else None
         kind = AssetType(asset_type.strip().lower())
         # The analysts are named and checked as for an analysis; without a
@@ -135,7 +142,7 @@ def backtest(
         console.print(f"[red]{exc}[/red]")
         raise typer.Exit(code=1) from None
 
-    names = [t.strip() for t in tickers.split(",") if t.strip()]
+    names = [market_symbol(t, config["market"]) for t in tickers.split(",") if t.strip()]
     if not names:
         console.print("[red]No ticker to analyze; pass them comma-separated, e.g. NVDA,AAPL[/red]")
         raise typer.Exit(code=1)
@@ -147,7 +154,7 @@ def backtest(
               "selected_analysts": [a.value for a in chosen]}
 
     try:
-        result = run_backtest(names, dates, DEFAULT_CONFIG, **kwargs)
+        result = run_backtest(names, dates, config, **kwargs)
     except Exception as exc:  # a missing key or an unknown analyst is a setup error
         console.print(f"[red]{exc}[/red]")
         raise typer.Exit(code=1) from None

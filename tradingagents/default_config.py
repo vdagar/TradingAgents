@@ -1,3 +1,4 @@
+import copy
 import os
 
 _TRADINGAGENTS_HOME = os.path.join(os.path.expanduser("~"), ".tradingagents")
@@ -74,13 +75,62 @@ def _apply_env_overrides(config: dict) -> dict:
     return config
 
 
-def build_default_config() -> dict:
+# Market-dependent defaults, layered over the rest by build_default_config.
+# Category chains list vendors a method may lack; the router skips those.
+MARKET_PROFILES = {
+    "IN": {
+        "data_vendors": {
+            "core_stock_apis": "nse_mcp,yfinance",
+            "technical_indicators": "yfinance",
+            "fundamental_data": "screener,yfinance",
+            # nse serves insider (PIT) disclosures; india_rss the headlines.
+            "news_data": "india_rss,nse,yfinance",
+            "macro_data": "rbi,fred",
+            "prediction_markets": "polymarket",
+        },
+        "global_news_queries": [
+            "RBI monetary policy repo rate inflation India",
+            "Nifty Sensex FII DII flows",
+            "Federal Reserve interest rates dollar emerging markets",
+            "crude oil prices rupee India",
+            "geopolitical risk trade tariffs India",
+            "China economy Asia markets",
+        ],
+    },
+    "US": {
+        "data_vendors": {
+            "core_stock_apis": "yfinance",       # Options: alpha_vantage, yfinance
+            "technical_indicators": "yfinance",  # Options: alpha_vantage, yfinance
+            # Statements come from SEC EDGAR as filed (US filers), then Yahoo; the
+            # overview and insider tools, which SEC EDGAR does not serve, from Yahoo.
+            "fundamental_data": "sec_edgar,yfinance",  # Options: sec_edgar, alpha_vantage, yfinance
+            "news_data": "yfinance",             # Options: alpha_vantage, yfinance
+            "macro_data": "fred",                # Options: fred (needs FRED_API_KEY)
+            "prediction_markets": "polymarket",  # Options: polymarket (keyless)
+        },
+        "global_news_queries": [
+            "Federal Reserve interest rates inflation",
+            "S&P 500 earnings GDP economic outlook",
+            "geopolitical risk trade war sanctions",
+            "ECB Bank of England BOJ central bank policy",
+            "oil commodities supply chain energy",
+        ],
+    },
+}
+
+
+def build_default_config(market: str | None = None) -> dict:
     """The built-in defaults with the TRADINGAGENTS_* environment folded in.
 
     Read when the package is imported, as DEFAULT_CONFIG; call it again to see
-    the environment as it is now.
+    the environment as it is now. ``market`` (else TRADINGAGENTS_MARKET, else
+    "IN") picks the vendor chains and macro news queries of MARKET_PROFILES.
     """
+    market = (market or os.getenv("TRADINGAGENTS_MARKET") or "IN").strip().upper()
+    if market not in MARKET_PROFILES:
+        raise ValueError(f"unknown market {market!r}; choose from {', '.join(MARKET_PROFILES)}")
     return _apply_env_overrides({
+        "market": market,
         "results_dir": os.getenv("TRADINGAGENTS_RESULTS_DIR") or os.path.join(_TRADINGAGENTS_HOME, "logs"),
         "data_cache_dir": os.getenv("TRADINGAGENTS_CACHE_DIR") or os.path.join(_TRADINGAGENTS_HOME, "cache"),
         "memory_log_path": os.getenv("TRADINGAGENTS_MEMORY_LOG_PATH") or os.path.join(_TRADINGAGENTS_HOME, "memory", "trading_memory.md"),
@@ -141,30 +191,12 @@ def build_default_config() -> dict:
         "news_article_limit": 20,             # max articles per ticker (ticker-news)
         "global_news_article_limit": 10,      # max articles for global/macro news
         "global_news_lookback_days": 7,       # macro news lookback window
-        # Search queries used by get_global_news for macro headlines. Extend or
-        # replace to broaden geographic / sector coverage.
-        "global_news_queries": [
-            "Federal Reserve interest rates inflation",
-            "S&P 500 earnings GDP economic outlook",
-            "geopolitical risk trade war sanctions",
-            "ECB Bank of England BOJ central bank policy",
-            "oil commodities supply chain energy",
-        ],
-        # Data vendor configuration
-        # Category-level configuration (default for all tools in category).
-        # The configured value is the exact vendor chain — requests are NOT silently
+        # Search queries used by get_global_news for macro headlines, and the
+        # data vendor chains, come from MARKET_PROFILES[market] (merged below).
+        # Category-level chains are the exact vendor chain — requests are NOT silently
         # routed to vendors you didn't choose. For ordered fallback, list several,
         # e.g. "yfinance,alpha_vantage". "default" uses all available vendors.
-        "data_vendors": {
-            "core_stock_apis": "yfinance",       # Options: alpha_vantage, yfinance
-            "technical_indicators": "yfinance",  # Options: alpha_vantage, yfinance
-            # Statements come from SEC EDGAR as filed (US filers), then Yahoo; the
-        # overview and insider tools, which SEC EDGAR does not serve, from Yahoo.
-        "fundamental_data": "sec_edgar,yfinance",  # Options: sec_edgar, alpha_vantage, yfinance
-            "news_data": "yfinance",             # Options: alpha_vantage, yfinance
-            "macro_data": "fred",                # Options: fred (needs FRED_API_KEY)
-            "prediction_markets": "polymarket",  # Options: polymarket (keyless)
-        },
+        **copy.deepcopy(MARKET_PROFILES[market]),
         # Tool-level configuration (takes precedence over category-level)
         "tool_vendors": {
             # Example: "get_stock_data": "alpha_vantage",  # Override category default
