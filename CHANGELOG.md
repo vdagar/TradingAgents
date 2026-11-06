@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Changes that need action when upgrading are listed under "Upgrading from" in their release.
 
+## [Unreleased]
+
+Indian markets (NSE/BSE) are the default, with Indian data sources behind the same agents and a read of how global markets reach Indian stocks.
+
+### Upgrading
+
+- The default market is India. For US runs pass `--market US`, set `TRADINGAGENTS_MARKET=US`, or build the config with `build_default_config("US")`; otherwise US statements come from Yahoo rather than SEC EDGAR.
+- In the IN market a bare CLI ticker is read as NSE: `NVDA` becomes `NVDA.NS`.
+
+### Added
+
+- `market` setting (`IN` or `US`), the `--market` flag and a market step in the CLI; `MARKET_PROFILES` holds each market's vendor chains and macro news queries.
+- NSE vendor: prices from NSE's MCP server; SEBI PIT insider trades, shareholding and promoter pledges, exchange filings, corporate actions and the option chain from nseindia.com.
+- screener.in fundamentals through the pinned screener-mcp server.
+- Economic Times and Business Standard news for Indian stocks; Indian subreddits for sentiment.
+- RBI vendor: current rates, MPC resolutions, the Weekly Statistical Supplement and press releases; FRED aliases `usd_inr`, `india_cpi`, `india_call_money_rate`, `india_discount_rate`.
+- Tools `get_global_cues`, `get_option_chain`, `get_shareholding` and `get_corporate_announcements`, and an India market context for every agent on a `.NS`/`.BO` stock.
+
 ## [0.7.1] — 2026-10-27
 
 Decisions are scored only on final closes and settle across long market holidays, a model's unpadded date no longer reads filings made after the run date, and fixes to portfolios, prices, SEC statements, reports, Azure and Claude settings.

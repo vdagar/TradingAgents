@@ -209,7 +209,8 @@ To run without questions, for a scheduled job or a script, answer the per-run st
 ```bash
 export TRADINGAGENTS_LLM_PROVIDER=openai TRADINGAGENTS_QUICK_THINK_LLM=gpt-6-luna TRADINGAGENTS_DEEP_THINK_LLM=gpt-6-sol
 export TRADINGAGENTS_OUTPUT_LANGUAGE=English TRADINGAGENTS_MAX_DEBATE_ROUNDS=1 TRADINGAGENTS_MAX_RISK_ROUNDS=1
-tradingagents --ticker NVDA --date 2026-09-23 --analysts market,news,fundamentals --save --no-show
+tradingagents --ticker RELIANCE --date 2026-09-23 --analysts market,news,fundamentals --save --no-show
+tradingagents --market US --ticker NVDA --date 2026-09-23 --analysts market,news --save --no-show
 ```
 Each flag skips only its own question. Run without a terminal, a missing answer stops the run before it starts and names the flag or variable to set.
 
@@ -226,6 +227,27 @@ TradingAgents works with any market Yahoo Finance covers, using the exchange-suf
 - India: `RELIANCE.NS`, `.BO` · Canada: `.TO` · Australia: `.AX`
 - China A-shares: Shanghai `.SS`, Shenzhen `.SZ` (e.g. `600519.SS` for Kweichow Moutai)
 - Crypto: `BTC-USD`, `ETH-USD`
+
+### Indian markets (NSE/BSE)
+
+India is the default market. Pick it or the US at the first CLI step, with `--market IN|US`, or with `TRADINGAGENTS_MARKET`; from Python, `build_default_config("US")` gives the US vendor chains. In the IN market a bare ticker is an NSE code: `RELIANCE` runs as `RELIANCE.NS`, while `500325.BO`, `^NSEI`, `BTC-USD` and other suffixed symbols keep their own form.
+
+The same agents run, fed Indian sources:
+
+| Data | Source (falls back to) |
+|---|---|
+| Prices | NSE's MCP server, unadjusted for splits (Yahoo) |
+| Fundamentals | screener.in through [screener-mcp](https://github.com/gaharivatsa/screener-mcp), pinned and checksummed; needs [`uv`](https://docs.astral.sh/uv/) on PATH (Yahoo) |
+| Insider trades | SEBI PIT disclosures from nseindia.com (Yahoo) |
+| Shareholding, promoter pledge, filings, corporate actions, option chain | nseindia.com |
+| Company news | Economic Times and Business Standard RSS (Yahoo) |
+| Social | r/IndianStreetBets, r/IndiaInvestments, r/DalalStreetTalks (StockTwits is skipped) |
+| Macro | rbi.org.in: current rates, MPC resolutions, Weekly Statistical Supplement, press releases (FRED, with `usd_inr`, `india_cpi`) |
+| Global cues | S&P 500, Nasdaq, Nikkei, Hang Seng, Shanghai, dollar index, USD/INR, US 10Y, Brent, gold, India VIX, plus FII/DII flows and GIFT Nifty |
+
+The news analyst explains how the global cues reach the stock (FPI flows, the rupee, crude, US tech spending, China), and every agent is told prices are in INR, with T+1 settlement, circuit limits, STT and SEBI/RBI in play. A run dated in the past is not served data that only exists as of today (option chain, current rates, FII/DII, GIFT Nifty, screener.in figures); filings, shareholding, MPC decisions and news are read as published by the run date.
+
+NSE publishes its MCP and website data for information and learning, not for commercial use ([terms](https://www.nseindia.com/nse-mcp)); screener.in, rbi.org.in and the news sites have their own terms. Check them before relying on this beyond personal research.
 
 <p align="center">
   <img src="assets/cli/cli_init.png" width="100%" style="display: inline-block; margin: 0 2%;">
@@ -257,8 +279,8 @@ from tradingagents.default_config import DEFAULT_CONFIG
 
 ta = TradingAgentsGraph(debug=True, config=DEFAULT_CONFIG.copy())
 
-# forward propagate
-state, decision = ta.propagate("NVDA", "2026-09-01")
+# forward propagate (India is the default market; for a US ticker use build_default_config("US"))
+state, decision = ta.propagate("RELIANCE.NS", "2026-09-01")
 print(decision)
 
 # the same report tree the CLI saves, under results_dir/reports
