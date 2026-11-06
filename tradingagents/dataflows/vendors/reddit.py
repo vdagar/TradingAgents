@@ -30,7 +30,7 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 from tradingagents.dataflows.date_window import coverage_gap, in_window
-from tradingagents.dataflows.symbols import crypto_base
+from tradingagents.dataflows.symbols import crypto_base, is_indian_symbol
 
 logger = logging.getLogger(__name__)
 
@@ -83,9 +83,15 @@ DEFAULT_SUBREDDITS = ("wallstreetbets", "stocks", "investing")
 CRYPTO_SUBREDDITS = ("CryptoCurrency", "CryptoMarkets")
 _COIN_SUBREDDITS = {"BTC": "Bitcoin", "ETH": "ethereum", "SOL": "solana"}
 
+# Indian retail discussion: IndianStreetBets is the busiest and most speculative,
+# IndiaInvestments longer-term, DalalStreetTalks stock-by-stock.
+INDIA_SUBREDDITS = ("IndianStreetBets", "IndiaInvestments", "DalalStreetTalks")
+
 
 def subreddits_for(ticker: str) -> tuple[str, ...]:
-    """The subreddits searched for ``ticker``: crypto communities for a crypto pair."""
+    """The subreddits searched for ``ticker``: Indian ones for an NSE/BSE stock, crypto ones for a pair."""
+    if is_indian_symbol(ticker):
+        return INDIA_SUBREDDITS
     base = crypto_base(ticker)
     if not base:
         return DEFAULT_SUBREDDITS
@@ -275,7 +281,8 @@ def fetch_reddit_posts(
     subreddits = list(subreddits or subreddits_for(ticker))
     # Crypto reaches us as a Yahoo pair (BTC-USD); search Reddit for the base
     # ("BTC") so the query actually matches discussion instead of near-nothing.
-    ticker = crypto_base(ticker) or ticker
+    # Indian posters write RELIANCE, not RELIANCE.NS.
+    ticker = crypto_base(ticker) or (ticker.rsplit(".", 1)[0] if is_indian_symbol(ticker) else ticker)
     label = ", ".join(f"r/{s}" for s in subreddits)
     fetched = _fetch_subreddit_rss(ticker, "+".join(subreddits), _FEED_PAGE, timeout)
     if fetched is None:

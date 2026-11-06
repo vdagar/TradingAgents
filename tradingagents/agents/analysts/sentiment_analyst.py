@@ -3,9 +3,10 @@
 The node fetches its sources before calling the model and puts them in the
 prompt, so the model reports on data it was given rather than inventing posts:
 
-  1. News headlines: Yahoo Finance
-  2. StockTwits messages: the cashtag stream, with Bullish/Bearish tags
-  3. Reddit posts: r/wallstreetbets, r/stocks, r/investing, or crypto communities for a crypto pair
+  1. News headlines: the configured news vendors (Economic Times / Business Standard for Indian stocks)
+  2. StockTwits messages: the cashtag stream, with Bullish/Bearish tags (skipped for NSE/BSE stocks)
+  3. Reddit posts: r/wallstreetbets, r/stocks, r/investing; r/IndianStreetBets, r/IndiaInvestments,
+     r/DalalStreetTalks for an Indian stock; or crypto communities for a crypto pair
 
 Each source is trimmed to the analysis window. With a TypeSafe key, the social
 posts are screened by Jev first (see post_screen). These feeds serve recent items
@@ -31,9 +32,11 @@ from tradingagents.agents.structured import (
     invoke_structured_or_freetext,
 )
 from tradingagents.agents.tools import get_news
+from tradingagents.dataflows.symbols import is_indian_symbol
 from tradingagents.dataflows.vendors.reddit import (
     CRYPTO_SUBREDDITS,
     DEFAULT_SUBREDDITS,
+    INDIA_SUBREDDITS,
     fetch_reddit_posts,
     subreddits_for,
 )
@@ -67,8 +70,13 @@ def create_sentiment_analyst(llm):
         # Pass the analysis window so a historical run trims social posts to it
         # instead of leaking today's chatter into a backtest (#1220).
         screen = jev_screen(ticker)
-        stocktwits_block = fetch_stocktwits_messages(
-            ticker, limit=30, start_date=start_date, end_date=end_date, screen=screen
+        # StockTwits barely covers NSE/BSE listings, so Indian stocks skip it.
+        stocktwits_block = (
+            "<stocktwits unavailable: it has no meaningful coverage of NSE/BSE stocks>"
+            if is_indian_symbol(ticker)
+            else fetch_stocktwits_messages(
+                ticker, limit=30, start_date=start_date, end_date=end_date, screen=screen
+            )
         )
         subreddits = subreddits_for(ticker)
         reddit_block = fetch_reddit_posts(
@@ -140,6 +148,9 @@ def _build_system_message(
     """Assemble the sentiment-analyst system message with structured data blocks."""
     if subreddits == DEFAULT_SUBREDDITS:
         character = "r/wallstreetbets is often contrarian/exuberant; r/stocks more measured; r/investing longer-term"
+    elif subreddits == INDIA_SUBREDDITS:
+        character = ("r/IndianStreetBets is speculative and F&O-heavy; r/IndiaInvestments longer-term and "
+                     "conservative; r/DalalStreetTalks stock-by-stock discussion")
     elif len(subreddits) > len(CRYPTO_SUBREDDITS):
         character = f"r/{subreddits[0]} leans toward the coin's holders; r/CryptoCurrency and r/CryptoMarkets are broader"
     else:
@@ -148,7 +159,7 @@ def _build_system_message(
 
 ## Data sources (pre-fetched, in this prompt)
 
-### News headlines — Yahoo Finance, past 7 days
+### News headlines — past 7 days
 Institutional framing. Fact-driven, slower-moving signal.
 
 <start_of_news>
