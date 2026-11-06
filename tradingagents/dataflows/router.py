@@ -6,7 +6,7 @@ from tradingagents.dataflows.errors import (
     VendorNotConfiguredError,
     VendorUnavailableError,
 )
-from tradingagents.dataflows.vendors import india_rss, nse, screener
+from tradingagents.dataflows.vendors import india_rss, nse, rbi, screener
 from tradingagents.dataflows.vendors.alpha_vantage import (
     get_balance_sheet as get_alpha_vantage_balance_sheet,
     get_cashflow as get_alpha_vantage_cashflow,
@@ -156,6 +156,7 @@ VENDOR_METHODS = {
     },
     # macro_data
     "get_macro_indicators": {
+        "rbi": rbi.get_macro_data,
         "fred": get_fred_macro_data,
     },
     # prediction_markets

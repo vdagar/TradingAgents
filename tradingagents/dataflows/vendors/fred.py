@@ -87,6 +87,11 @@ MACRO_SERIES = {
     "germany_10y": "IRLTLT01DEM156N",
     "france_10y": "IRLTLT01FRM156N",
     "eur_usd": "DEXUSEU",
+    # India (for .NS/.BO tickers): the rupee, CPI and short rates as FRED mirrors them.
+    "usd_inr": "DEXINUS",
+    "india_cpi": "INDCPIALLMINMEI",
+    "india_call_money_rate": "IRSTCI01INM156N",
+    "india_discount_rate": "INTDSRINM193N",
 }
 
 

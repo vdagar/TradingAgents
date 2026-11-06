@@ -237,7 +237,11 @@ def get_macro_indicators(
         "'unemployment', 'fed_funds_rate', '10y_treasury', 'yield_curve', "
         "'real_gdp', 'vix', euro-area aliases such as 'ecb_deposit_rate', "
         "'euro_hicp', 'euro_core_hicp', 'euro_real_gdp', 'germany_10y', "
-        "'france_10y', 'eur_usd', or a raw FRED series ID such as 'CPIAUCSL'.",
+        "'france_10y', 'eur_usd', India aliases such as 'usd_inr', 'india_cpi', "
+        "'india_call_money_rate', RBI data: 'rbi_rates' (today's repo/SDF/MSF, CRR, SLR, "
+        "G-sec yields), 'rbi_mpc' (latest MPC decision, stance and vote), 'forex_reserves' "
+        "(Weekly Statistical Supplement: reserves, bank credit, M3), 'rbi_press_releases', "
+        "or a raw FRED series ID such as 'CPIAUCSL'.",
     ],
     curr_date: Annotated[str, "Current date in yyyy-mm-dd format; the end of the window"],
     look_back_days: Annotated[
@@ -246,9 +250,9 @@ def get_macro_indicators(
     trade_date: Annotated[str, InjectedState("trade_date")] = "",
 ) -> str:
     """
-    Retrieve a macroeconomic indicator time series from FRED (Federal Reserve
-    Economic Data): policy rates, Treasury yields, inflation, labor, and growth,
-    for the US and, through FRED's mirrored series, the euro area.
+    Retrieve a macroeconomic indicator: a time series from FRED (Federal Reserve
+    Economic Data) for the US, the euro area and India, or Reserve Bank of India
+    data scraped from rbi.org.in (policy rates, MPC decisions, weekly statistics).
     Returns the series title, units, frequency, the latest value, the change
     over the window, and a recent observation table. Uses the configured
     macro_data vendor.
