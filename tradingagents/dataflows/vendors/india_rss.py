@@ -27,7 +27,7 @@ FEEDS = {
     "Business Standard Markets": "https://www.business-standard.com/rss/markets-106.rss",
     "Business Standard Companies": "https://www.business-standard.com/rss/companies-101.rss",
 }
-_UA = "tradingagents/0.2 (+https://github.com/TauricResearch/TradingAgents)"
+_UA = "tradingagents/0.2"  # Business Standard refuses a User-Agent carrying a URL
 _TTL = 15 * 60
 _NAME_NOISE = {"limited", "ltd", "ltd.", "the", "india", "industries", "corporation", "company"}
 
