@@ -1,0 +1,105 @@
+{
+  "name": "tradingagents-india",
+  "displayName": "TradingAgents India (Copilot)",
+  "description": "Multi-agent stock analysis for NSE/BSE and US stocks, run on your GitHub Copilot models. A fork of TauricResearch/TradingAgents. Not investment advice.",
+  "version": "0.1.0",
+  "publisher": "vdagar",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vdagar/TradingAgents"
+  },
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "AI",
+    "Chat"
+  ],
+  "keywords": [
+    "trading",
+    "stocks",
+    "nse",
+    "bse",
+    "copilot",
+    "agents"
+  ],
+  "extensionDependencies": [
+    "github.copilot-chat"
+  ],
+  "main": "./out/src/extension.js",
+  "contributes": {
+    "chatParticipants": [
+      {
+        "id": "tradingagents.analyst",
+        "name": "tradingagents",
+        "fullName": "TradingAgents",
+        "description": "Analyze a stock with a team of AI agents, e.g. RELIANCE",
+        "isSticky": false,
+        "commands": [
+          {
+            "name": "analyze",
+            "description": "TICKER [YYYY-MM-DD] [market,sentiment,news,fundamentals]"
+          }
+        ]
+      }
+    ],
+    "commands": [
+      {
+        "command": "tradingagents.analyze",
+        "title": "TradingAgents: Analyze"
+      },
+      {
+        "command": "tradingagents.setApiKey",
+        "title": "TradingAgents: Set API Key"
+      }
+    ],
+    "configuration": {
+      "title": "TradingAgents",
+      "properties": {
+        "tradingagents.market": {
+          "type": "string",
+          "enum": ["IN", "US"],
+          "default": "IN",
+          "description": "Market a bare ticker belongs to, and its data sources: IN (NSE/BSE) or US."
+        },
+        "tradingagents.quickModel": {
+          "type": "string",
+          "default": "gpt-5-mini",
+          "description": "Copilot model id for the ten quick-tier agents (analysts, researchers, trader, risk debaters). The two managers use the model picked in chat. Falls back to that model when this one is not available."
+        },
+        "tradingagents.analysts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["market", "sentiment", "news", "fundamentals"]
+          },
+          "default": ["market", "sentiment", "news", "fundamentals"],
+          "description": "Analysts that run when a request names none."
+        },
+        "tradingagents.researchDepth": {
+          "type": "number",
+          "enum": [1, 3, 5],
+          "default": 1,
+          "description": "Debate and risk-discussion rounds. More rounds cost more Copilot requests."
+        },
+        "tradingagents.outputLanguage": {
+          "type": "string",
+          "default": "English",
+          "description": "Language of the reports."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "test": "npm run compile && node --test out/test/",
+    "wheel": "node -e \"require('fs').rmSync('python',{recursive:true,force:true})\" && uv build --wheel --out-dir vscode-extension/python --directory ..",
+    "vscode:prepublish": "npm run compile && npm run wheel"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "~1.95.0",
+    "typescript": "^5.6.0"
+  }
+}

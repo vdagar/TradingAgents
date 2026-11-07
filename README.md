@@ -249,6 +249,10 @@ The news analyst explains how the global cues reach the stock (FPI flows, the ru
 
 NSE publishes its MCP and website data for information and learning, not for commercial use ([terms](https://www.nseindia.com/nse-mcp)); screener.in, rbi.org.in and the news sites have their own terms. Check them before relying on this beyond personal research.
 
+### VS Code extension (GitHub Copilot)
+
+[`vscode-extension/`](vscode-extension/README.md) runs the agents from Copilot Chat on your Copilot models, with no API key: `@tradingagents /analyze RELIANCE`. It installs its own Python on first run. Build it with `cd vscode-extension && npm install && npx @vscode/vsce package`.
+
 <p align="center">
   <img src="assets/cli/cli_init.png" width="100%" style="display: inline-block; margin: 0 2%;">
 </p>

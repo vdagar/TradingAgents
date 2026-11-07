@@ -23,6 +23,7 @@ Indian markets (NSE/BSE) are the default, with Indian data sources behind the sa
 - Economic Times and Business Standard news for Indian stocks; Indian subreddits for sentiment.
 - RBI vendor: current rates, MPC resolutions, the Weekly Statistical Supplement and press releases; FRED aliases `usd_inr`, `india_cpi`, `india_call_money_rate`, `india_discount_rate`.
 - Tools `get_global_cues`, `get_option_chain`, `get_shareholding` and `get_corporate_announcements`, and an India market context for every agent on a `.NS`/`.BO` stock.
+- VS Code extension `vdagar.tradingagents-india` (`vscode-extension/`): a `@tradingagents` chat participant that runs the agents on GitHub Copilot models through a local OpenAI-compatible bridge, and `python -m tradingagents.vscode_run`, its JSON-lines run entry.
 
 ## [0.7.1] — 2026-10-27
 

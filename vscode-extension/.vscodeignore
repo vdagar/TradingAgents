@@ -1,0 +1,7 @@
+**
+!out/src/**
+!python/*.whl
+!package.json
+!README.md
+!LICENSE
+!NOTICE

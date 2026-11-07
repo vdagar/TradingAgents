@@ -1,0 +1,13 @@
+TradingAgents India (Copilot)
+Copyright 2026 vdagar
+
+This product is a fork of TradingAgents by Tauric Research
+(https://github.com/TauricResearch/TradingAgents), licensed under the
+Apache License, Version 2.0. It adds Indian market (NSE/BSE) data sources and a
+VS Code extension that runs the agents on GitHub Copilot models.
+
+It is not affiliated with or endorsed by Tauric Research, GitHub, NSE, BSE,
+screener.in, the Reserve Bank of India, Economic Times or Business Standard.
+
+Bundled at runtime under their own licenses: uv (Astral, Apache-2.0/MIT),
+screener-mcp (gaharivatsa, MIT), and the Python packages TradingAgents depends on.
